@@ -61,12 +61,8 @@ def process_datafolder(path):
 
         image_size = args.imageDims[0]
 
-        # fft_gt = Image.fromarray(
-        #     np.abs(fft_image * 255 / fft_image.max()).astype(np.uint8)
-        # ).resize(size=(image_size, image_size))
-
-        amp_gt = np.real(fft_image)
-        phase_gt = np.angle(fft_image, deg=True)
+        amp_gt = np.abs(fft_image)
+        phase_gt = np.angle(fft_image, deg=False)
 
         uvmax = max(max(ucoords), max(vcoords))
         range_ucoords = [int(ucoord * image_size // 2 / uvmax) for ucoord in ucoords]
@@ -83,14 +79,6 @@ def process_datafolder(path):
             amp_image[v][u] = v_amp
             phase_image[v][u] = v_phase
 
-        # amp_image = Image.fromarray((amp_image * 255 / amp_image.max()).astype(np.uint8))
-        # phase_image = Image.fromarray(((phase_image + phase_image.max()) * 255 / (phase_image.max() * 2)).astype(np.uint8))
-
-        # also try saving the raw values (not converted to image) as like numpy array and just use that
-        # fft_gt.save('../data/images/{}_gt.png'.format(image_name))
-        # amp_image.save('../data/images/{}_amp.png'.format(image_name))
-        # phase_image.save('../data/images/{}_phase.png'.format(image_name))
-
         np.save('../data/arrays/{}/{}_phase_gt.npy'.format(telescope_setting, image_name), phase_gt)
         np.save('../data/arrays/{}/{}_amp_gt.npy'.format(telescope_setting, image_name), amp_gt)
         np.save('../data/arrays/{}/{}_phase_img.npy'.format(telescope_setting, image_name), phase_image)
@@ -101,3 +89,7 @@ if __name__ == "__main__":
     process_datafolder('../raw_data/SgrA-star_data')
     process_datafolder('../raw_data/3C273_data')
     process_datafolder('../raw_data/3C279_data')
+    process_datafolder('../raw_data/M87_data')
+    process_datafolder('../raw_data/size_data')
+    process_datafolder('../raw_data/loc_data')
+    process_datafolder('../raw_data/challenge_data')
