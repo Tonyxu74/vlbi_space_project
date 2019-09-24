@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from myargs import args
-from utils.dataset import GenerateIterator
+from utils.dataset import GenerateIterator, GenerateIterator_train, GenerateIterator_val
 import segmentation_models_pytorch as smp
 import tqdm
 import time
@@ -44,8 +44,8 @@ def train():
 
     lossfn = torch.nn.MSELoss()
 
-    iterator_train = GenerateIterator(args, './data/arrays/train', eval=False, datatype=datatype)
-    iterator_val = GenerateIterator(args, './data/arrays/val', eval=True, datatype=datatype)
+    iterator_train = GenerateIterator_train(args, './data/arrays/train', eval=False, datatype=datatype)
+    iterator_val = GenerateIterator_val(args, './data/arrays/val', datatype=datatype)
 
     if torch.cuda.is_available():
         model = model.cuda()
@@ -58,6 +58,9 @@ def train():
         loss_sum, batch_num = 0, 0
         progress_bar = tqdm.tqdm(iterator_train, disable=False)
         start = time.time()
+
+        if args.uvGenerate:
+            iterator_train.dataset.generate_uv()
 
         for images, gt in progress_bar:
             if torch.cuda.is_available():
@@ -108,7 +111,7 @@ def train():
                     val_loss,
                 )
             )
-        if epoch % 1 == 0:
+        if epoch % 5 == 0:
             state = {
                 'epoch': epoch,
                 'state_dict': model.state_dict(),

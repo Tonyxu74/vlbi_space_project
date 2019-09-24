@@ -3,6 +3,7 @@ from myargs import args
 import numpy as np
 from tqdm import tqdm
 from PIL import Image
+import random
 
 
 def find_file(root_dir, endswith):
@@ -17,6 +18,8 @@ def find_file(root_dir, endswith):
 
 def process_cal256(path):
     image_data = find_file(path, '.jpg')
+    random.shuffle(image_data)
+    image_data = image_data[:args.trainNum]
 
     if not os.path.exists('../data/arrays/cal256'):
         os.mkdir('../data/arrays/cal256')
@@ -29,7 +32,7 @@ def process_cal256(path):
         square_size = min(image.size[0], image.size[1])
         image = image.crop(box=(0, 0, square_size, square_size))
         image = image.resize(args.imageDims, resample=Image.NEAREST)
-        image = np.asarray(image).astype(np.float64) / 255
+        image = np.asarray(image).astype(np.float32) / 255
 
         fft_image = np.fft.fft2(image)
         fft_image = np.fft.fftshift(fft_image)

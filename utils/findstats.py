@@ -38,13 +38,14 @@ def findstats(path, endswith):
     return mean, std_dev
 
 
-# for the cal256 dataset, which only has amp and phase images
-findstats('../data/arrays/train', 'amp_img.npy')
-findstats('../data/arrays/train', 'phase_img.npy')
+if __name__ == "__main__":
+    # for the cal256 dataset, which only has amp and phase images
+    findstats('../data/arrays/train', 'amp_img.npy')
+    findstats('../data/arrays/train', 'phase_img.npy')
 
-# for the vlbi online dataset, which has amp and phase images and labels
-findstats('../data/arrays/val', 'amp_img.npy')
-findstats('../data/arrays/val', 'amp_label.npy')
-findstats('../data/arrays/val', 'phase_img.npy')
-findstats('../data/arrays/val', 'phase_gt.npy')
+    # for the vlbi online dataset, which has amp and phase images and labels
+    findstats('../data/arrays/val', 'amp_img.npy')
+    findstats('../data/arrays/val', 'amp_label.npy')
+    findstats('../data/arrays/val', 'phase_img.npy')
+    findstats('../data/arrays/val', 'phase_gt.npy')
 

@@ -111,77 +111,6 @@ def GenerateIterator(args, impath, eval=False, shuffle=True, datatype='amp'):
     return data.DataLoader(Dataset(impath, eval=eval, datatype=datatype), **params)
 
 
-class Dataset_val(data.Dataset):
-    'Characterizes a dataset for PyTorch'
-    def __init__(self, impath, eval, datatype):
-        'Initialization'
-
-        self.eval = eval
-        self.datatype = datatype
-        self.std = 0
-
-        # add images in different folders to the datalist
-        datalist = []
-        folders = glob.glob('{}/*/'.format(impath))
-
-        for imfolder in folders:
-            amp_image_list = sorted(findFile(imfolder, 'amp_img.npy'))
-            phase_image_list = sorted(findFile(imfolder, 'phase_img.npy'))
-            amp_gt_list = sorted(findFile(imfolder, 'amp_gt.npy'))
-            phase_gt_list = sorted(findFile(imfolder, 'phase_gt.npy'))
-            datalist.append([{
-                'amp_image': amp_img,
-                'phase_image': phase_img,
-                'amp_label': amp_gt,
-                'phase_label': phase_gt
-            } for amp_img, phase_img, amp_gt, phase_gt in zip(amp_image_list, phase_image_list, amp_gt_list, phase_gt_list)
-            ])
-        self.datalist = [item for sublist in datalist for item in sublist]
-
-        if not self.eval:
-            from itertools import chain
-            self.datalist = list(chain(*[[i] * 1 for i in self.datalist]))
-
-    def __len__(self):
-        'Denotes the total number of samples'
-        return len(self.datalist)
-
-    def __getitem__(self, index):
-        'Generates one sample of data'
-
-        # Load data and get label given datatype
-        if self.datatype == 'amp':
-            image = np.load(self.datalist[index]['amp_image'])
-            label = np.load(self.datalist[index]['amp_label'])
-
-        elif self.datatype == 'phase':
-            image = np.load(self.datalist[index]['phase_image'])
-            label = np.load(self.datalist[index]['phase_label'])
-
-        elif self.datatype == 'comb':
-            amp_image = np.load(self.datalist[index]['amp_image'])
-            phase_image = np.load(self.datalist[index]['phase_image'])
-            amp_label = np.load(self.datalist[index]['amp_label'])
-            phase_label = np.load(self.datalist[index]['phase_label'])
-
-            amp_image, amp_label = normalizepatch(amp_image, amp_label, self.eval, self.std, 'amp')
-            phase_image, phase_label = normalizepatch(phase_image, phase_label, self.eval, self.std, 'phase')
-
-            return amp_image, phase_image, amp_label, phase_label
-
-        else:
-            raise Exception("Improper datatype called, only 'amp' or 'phase' or 'comb' permitted, {} given".format(self.datatype))
-
-        # augmentations on image
-        image, label = normalizepatch(image, label, self.eval, self.std, datatype=self.datatype)
-
-        if label.shape[-1] < 256:
-            upsample = torch.nn.Upsample(size=(256, 256))
-            label = upsample(label.unsqueeze(0))[0]
-
-        return image, label
-
-
 def GenerateIterator_val(args, impath, shuffle=True, datatype='amp'):
     params = {
         'batch_size': args.batchSize,
@@ -191,7 +120,7 @@ def GenerateIterator_val(args, impath, shuffle=True, datatype='amp'):
         'drop_last': False,
     }
 
-    return data.DataLoader(Dataset_val(impath, eval=True, datatype=datatype), **params)
+    return data.DataLoader(Dataset(impath, eval=True, datatype=datatype), **params)
 
 
 class Dataset_train(data.Dataset):
@@ -265,9 +194,9 @@ class Dataset_train(data.Dataset):
         # augmentations on image
         image, label = normalizepatch(image, label, self.eval, self.std, datatype=self.datatype)
 
-        if label.shape[-1] < 256:
-            upsample = torch.nn.Upsample(size=(256, 256))
-            label = upsample(label.unsqueeze(0))[0]
+        # if label.shape[-1] < 256:
+        #     upsample = torch.nn.Upsample(size=(256, 256))
+        #     label = upsample(label.unsqueeze(0))[0]
 
         return image, label
 
