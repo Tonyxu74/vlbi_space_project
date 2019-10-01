@@ -4,6 +4,7 @@ from astropy.io import fits
 from myargs import args
 import numpy as np
 from tqdm import tqdm
+import math
 
 '''
     make some open all files with oifits ending and find their corresponding image, resize to 64x64, 
@@ -48,12 +49,12 @@ def process_datafolder(path):
             vcoords.append(visdata.vcoord)
             ucoords.append(visdata.ucoord)
             visibilities.append(visdata._visamp[0])
-            phases.append(visdata._visphi[0])
+            phases.append(visdata._visphi[0] / 180 * math.pi)
 
             vcoords.append(-visdata.vcoord)
             ucoords.append(-visdata.ucoord)
             visibilities.append(visdata._visamp[0])
-            phases.append(-visdata._visphi[0])
+            phases.append(-visdata._visphi[0] / 180 * math.pi)
 
         image = fits.open(gt_path)[0].data
         fft_image = np.fft.fft2(image)

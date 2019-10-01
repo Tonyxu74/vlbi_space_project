@@ -1,6 +1,7 @@
 import numpy as np
 import glob
 import os
+import tqdm
 
 
 def findFile(root_dir, endswith):
@@ -24,9 +25,12 @@ def findstats(path, endswith):
 
     image_list = []
     for image_path in path_list:
+        if "gt" in endswith:
+            image_list.extend(np.load(image_path).flatten())
+            continue
         image_list.append(np.load(image_path))
 
-    image_list = np.asarray(image_list)
+    image_list = np.asarray(image_list).flatten()
 
     mean = np.mean(image_list)
     std_dev = np.std(image_list)
@@ -40,12 +44,12 @@ def findstats(path, endswith):
 
 if __name__ == "__main__":
     # for the cal256 dataset, which only has amp and phase images
-    findstats('../data/arrays/train', 'amp_img.npy')
-    findstats('../data/arrays/train', 'phase_img.npy')
-
-    # for the vlbi online dataset, which has amp and phase images and labels
-    findstats('../data/arrays/val', 'amp_img.npy')
-    findstats('../data/arrays/val', 'amp_label.npy')
+    # findstats('../data/arrays/train', 'amp_img.npy')
+    # findstats('../data/arrays/train', 'phase_img.npy')
+    #
+    # # for the vlbi online dataset, which has amp and phase images and labels
+    # findstats('../data/arrays/val', 'amp_img.npy')
+    # findstats('../data/arrays/val', 'amp_gt.npy')
     findstats('../data/arrays/val', 'phase_img.npy')
-    findstats('../data/arrays/val', 'phase_gt.npy')
+    # findstats('../data/arrays/val', 'phase_gt.npy')
 

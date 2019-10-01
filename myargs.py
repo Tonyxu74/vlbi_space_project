@@ -9,7 +9,7 @@ parser.add_argument('--encoderName', type=str, default='resnet18',
 parser.add_argument('--batchSize', type=int,
                     default=8, help='input batch size')
 parser.add_argument('--trainNum', type=int,
-                    default=30000, help='input batch size')
+                    default=10000, help='input batch size')
 parser.add_argument('--numEpochs', type=int, default=100,
                     help='number of epochs to train for')
 parser.add_argument('--continueTrain', type=bool, default=False,

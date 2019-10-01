@@ -9,7 +9,7 @@ import time
 '''
     don't forget about iterator.dataset.std = number to set some noise 
 '''
-datatype = 'phase'
+datatype = 'amp'
 
 
 def train():
@@ -44,7 +44,7 @@ def train():
 
     lossfn = torch.nn.MSELoss()
 
-    iterator_train = GenerateIterator_train(args, './data/arrays/train', eval=False, datatype=datatype)
+    iterator_train = GenerateIterator_train(args, './data/arrays/train', datatype=datatype)
     iterator_val = GenerateIterator_val(args, './data/arrays/val', datatype=datatype)
 
     if torch.cuda.is_available():
@@ -77,7 +77,7 @@ def train():
             loss_sum += loss.item()
             batch_num += 1
 
-            progress_bar.set_description('Loss: {:.5f} '.format(loss_sum / batch_num + 1e-6))
+            progress_bar.set_description('Loss: {:.5f} '.format(loss_sum / (batch_num + 1e-6)))
 
         if epoch % 1 == 0:
             with torch.no_grad():
@@ -101,7 +101,7 @@ def train():
                 preds = np.asarray(preds)
                 gts = np.asarray(gts)
 
-                val_f1_score = (np.sum(np.abs(preds.flatten() - gts.flatten())) / len(gts))
+                val_f1_score = (np.sum(np.abs(preds.flatten() - gts.flatten())) / len(gts.flatten()))
 
             print('|| Ep {} || Secs {:.1f} || Loss {:.1f} || Val f1 score {:.3f} || Val Loss {:.3f} ||\n'.format(
                     epoch,

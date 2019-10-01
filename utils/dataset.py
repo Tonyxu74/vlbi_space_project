@@ -6,14 +6,19 @@ import random
 import os
 import torch
 from myargs import args
-import math
 from utils.UV_plane_generator import uv_generate
 
-AMP_MEAN = (0.500,)
-AMP_STD = (0.500,)
+TRAIN_AMP_MEAN = (16.9907,)
+TRAIN_AMP_STD = (157.3094,)
 
-PHASE_MEAN = (0.,)
-PHASE_STD = (2*math.pi,)
+TRAIN_PHASE_MEAN = (0.,)
+TRAIN_PHASE_STD = (1.8141,)
+
+VAL_AMP_MEAN = (0.00221,)
+VAL_AMP_STD = (0.03018,)
+
+VAL_PHASE_MEAN = (0.,)
+VAL_PHASE_STD = (1.8104,)
 
 eps = 1e-8
 
@@ -201,7 +206,7 @@ class Dataset_train(data.Dataset):
         return image, label
 
 
-def GenerateIterator_train(args, impath, eval=False, shuffle=True, datatype='amp'):
+def GenerateIterator_train(args, impath, shuffle=True, datatype='amp'):
     params = {
         'batch_size': args.batchSize,
         'shuffle': shuffle,
@@ -210,7 +215,7 @@ def GenerateIterator_train(args, impath, eval=False, shuffle=True, datatype='amp
         'drop_last': False,
     }
 
-    return data.DataLoader(Dataset_train(impath, eval=eval, datatype=datatype), **params)
+    return data.DataLoader(Dataset_train(impath, eval=False, datatype=datatype), **params)
 
 
 def normalizepatch(p, gt, eval, std, datatype):
@@ -229,9 +234,18 @@ def normalizepatch(p, gt, eval, std, datatype):
     p = torch.from_numpy(p).unsqueeze(0)
     gt = torch.from_numpy(gt).unsqueeze(0)
 
-    if datatype == 'amp':
-        return transforms.Normalize(mean=AMP_MEAN, std=AMP_STD)(p.float()), gt.float()
+    if datatype == 'amp' and eval:
+        return transforms.Normalize(mean=VAL_AMP_MEAN, std=VAL_AMP_STD)(p.float()), \
+            transforms.Normalize(mean=VAL_AMP_MEAN, std=VAL_AMP_STD)(gt.float())
 
-    elif datatype == 'phase':
-        return transforms.Normalize(mean=PHASE_MEAN, std=PHASE_STD)(p.float()), \
-            transforms.Normalize(mean=PHASE_MEAN, std=PHASE_STD)(gt.float())
+    elif datatype == 'phase' and eval:
+        return transforms.Normalize(mean=VAL_PHASE_MEAN, std=VAL_PHASE_STD)(p.float()), \
+            transforms.Normalize(mean=VAL_PHASE_MEAN, std=VAL_PHASE_STD)(gt.float())
+
+    elif datatype == 'amp' and not eval:
+        return transforms.Normalize(mean=TRAIN_AMP_MEAN, std=TRAIN_AMP_STD)(p.float()), \
+            transforms.Normalize(mean=TRAIN_AMP_MEAN, std=TRAIN_AMP_STD)(gt.float())
+
+    elif datatype == 'phase' and not eval:
+        return transforms.Normalize(mean=TRAIN_PHASE_MEAN, std=TRAIN_PHASE_STD)(p.float()), \
+            transforms.Normalize(mean=TRAIN_PHASE_MEAN, std=TRAIN_PHASE_STD)(gt.float())
