@@ -89,6 +89,14 @@ class Dataset(data.Dataset):
             amp_image, amp_label = normalizepatch(amp_image, amp_label, self.eval, self.std, 'amp')
             phase_image, phase_label = normalizepatch(phase_image, phase_label, self.eval, self.std, 'phase')
 
+            if amp_label.shape[-1] < 256:
+                upsample = torch.nn.Upsample(size=(256, 256))
+                amp_label = upsample(amp_label.unsqueeze(0))[0]
+
+            if phase_label.shape[-1] < 256:
+                upsample = torch.nn.Upsample(size=(256, 256))
+                phase_label = upsample(phase_label.unsqueeze(0))[0]
+
             return amp_image, phase_image, amp_label, phase_label
 
         else:
