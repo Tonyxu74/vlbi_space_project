@@ -9,7 +9,7 @@ import time
 '''
     don't forget about iterator.dataset.std = number to set some noise 
 '''
-datatype = 'amp'
+datatype = 'phase'
 
 
 def train():

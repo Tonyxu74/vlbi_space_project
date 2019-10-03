@@ -109,6 +109,7 @@ class Dataset(data.Dataset):
             upsample = torch.nn.Upsample(size=(256, 256))
             label = upsample(label.unsqueeze(0))[0]
 
+        # nn.functional.interpolate
         return image, label
 
 
