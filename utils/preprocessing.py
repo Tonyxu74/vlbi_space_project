@@ -5,6 +5,7 @@ from myargs import args
 import numpy as np
 from tqdm import tqdm
 import math
+from scipy.ndimage.interpolation import zoom
 
 '''
     make some open all files with oifits ending and find their corresponding image, resize to 64x64, 
@@ -57,6 +58,7 @@ def process_datafolder(path):
             phases.append(-visdata._visphi[0] / 180 * math.pi)
 
         image = fits.open(gt_path)[0].data
+        image = zoom(image, zoom=args.imageDims[0]/image.shape[0], mode='nearest')
         fft_image = np.fft.fft2(image)
         fft_image = np.fft.fftshift(fft_image)
 

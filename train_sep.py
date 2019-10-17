@@ -6,13 +6,9 @@ from utils.dataset import GenerateIterator, GenerateIterator_train, GenerateIter
 import segmentation_models_pytorch as smp
 import tqdm
 import time
-'''
-    don't forget about iterator.dataset.std = number to set some noise 
-'''
-datatype = 'phase'
 
 
-def train():
+def train(datatype):
 
     # define model and initialize weights if required
     def activation(x):
@@ -60,7 +56,10 @@ def train():
         start = time.time()
 
         if args.uvGenerate:
-            iterator_train.dataset.generate_uv()
+            num = args.numEpochs-epoch+1
+            if num < 10:
+                num = 10
+            iterator_train.dataset.generate_uv(tele_num=num)
 
         for images, gt in progress_bar:
             if torch.cuda.is_available():
@@ -121,4 +120,5 @@ def train():
 
 
 if __name__ == '__main__':
-    train()
+    train('amp')
+    train('phase')

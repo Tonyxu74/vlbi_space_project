@@ -164,10 +164,10 @@ class Dataset_train(data.Dataset):
             from itertools import chain
             self.datalist = list(chain(*[[i] * 1 for i in self.datalist]))
 
-        self.simulated_uv = uv_generate(uvnum=10, output_size=256, rotation=120)
+        self.simulated_uv = uv_generate(uvnum=30, output_size=256, rotation=120)
 
-    def generate_uv(self):
-        simulated_uv = uv_generate(uvnum=10, output_size=256, rotation=120)
+    def generate_uv(self, tele_num=10):
+        simulated_uv = uv_generate(uvnum=10, telescope_num=tele_num, output_size=256, rotation=120)
         self.simulated_uv = simulated_uv
 
     def __len__(self):

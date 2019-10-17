@@ -15,7 +15,7 @@ parser.add_argument('--numEpochs', type=int, default=50,
 parser.add_argument('--continueTrain', type=bool, default=False,
                     help='continue to train from saved dict')
 parser.add_argument('--imageDims', type=tuple,
-                    default=(256, 256), help='dimensions of image')
+                    default=(64, 64), help='dimensions of image')
 parser.add_argument('--workers', type=int, default=0,
                     help='number of workers to use from cpu')
 parser.add_argument('--uvGenerate', type=bool, default=True,

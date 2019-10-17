@@ -144,7 +144,7 @@ def visualize_comb(epoch_amp, epoch_phase):
                 pred_brightness = np.fft.ifft2(comb_gt)
                 pred_brightness = np.fft.ifftshift(pred_brightness)
                 pred_brightness = np.abs(pred_brightness)
-                pred_brightness[:, 125:131, 125:131] = 0
+                pred_brightness[:, 115:141, 115:141] = 0
 
                 gt_vis_amp = gt_vis_amp.cpu().data.numpy() * VAL_AMP_STD + VAL_AMP_MEAN
                 gt_vis_phase = gt_vis_phase.cpu().data.numpy() * VAL_PHASE_STD + VAL_PHASE_MEAN
@@ -165,4 +165,4 @@ def visualize_comb(epoch_amp, epoch_phase):
 
 
 if __name__ == "__main__":
-    visualize_comb(5, 45)
+    visualize_comb(45, 45)
