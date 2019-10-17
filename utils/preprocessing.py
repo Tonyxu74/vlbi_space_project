@@ -89,7 +89,7 @@ def process_datafolder(path):
 
 
 if __name__ == "__main__":
-    process_datafolder('../raw_data/SgrA-star_data')
+    # process_datafolder('../raw_data/SgrA-star_data')
     process_datafolder('../raw_data/3C273_data')
     process_datafolder('../raw_data/3C279_data')
     process_datafolder('../raw_data/M87_data')

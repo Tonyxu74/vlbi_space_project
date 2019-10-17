@@ -20,6 +20,8 @@ parser.add_argument('--workers', type=int, default=0,
                     help='number of workers to use from cpu')
 parser.add_argument('--uvGenerate', type=bool, default=True,
                     help='Use the UV generator train?')
+parser.add_argument('--fftComb', type=bool, default=True,
+                    help='train by combining with fft?')
 
 parser.add_argument('--lr', type=float, default=0.0005,
                     help='learning rate')

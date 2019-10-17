@@ -106,7 +106,7 @@ def train(datatype):
                     epoch,
                     time.time() - start,
                     loss_sum / batch_num,
-                    val_f1_score / (256 ** 2),
+                    val_f1_score,
                     val_loss,
                 )
             )
