@@ -89,13 +89,13 @@ class Dataset(data.Dataset):
             amp_image, amp_label = normalizepatch(amp_image, amp_label, self.eval, self.std, 'amp')
             phase_image, phase_label = normalizepatch(phase_image, phase_label, self.eval, self.std, 'phase')
 
-            if amp_label.shape[-1] < 256:
-                upsample = torch.nn.Upsample(size=(256, 256))
-                amp_label = upsample(amp_label.unsqueeze(0))[0]
-
-            if phase_label.shape[-1] < 256:
-                upsample = torch.nn.Upsample(size=(256, 256))
-                phase_label = upsample(phase_label.unsqueeze(0))[0]
+            # if amp_label.shape[-1] < 256:
+            #     upsample = torch.nn.Upsample(size=(256, 256))
+            #     amp_label = upsample(amp_label.unsqueeze(0))[0]
+            #
+            # if phase_label.shape[-1] < 256:
+            #     upsample = torch.nn.Upsample(size=(256, 256))
+            #     phase_label = upsample(phase_label.unsqueeze(0))[0]
 
             return amp_image, phase_image, amp_label, phase_label
 
@@ -105,9 +105,9 @@ class Dataset(data.Dataset):
         # augmentations on image
         image, label = normalizepatch(image, label, self.eval, self.std, datatype=self.datatype)
 
-        if label.shape[-1] < 256:
-            upsample = torch.nn.Upsample(size=(256, 256))
-            label = upsample(label.unsqueeze(0))[0]
+        # if label.shape[-1] < 256:
+        #     upsample = torch.nn.Upsample(size=(256, 256))
+        #     label = upsample(label.unsqueeze(0))[0]
 
         # nn.functional.interpolate
         return image, label
@@ -164,10 +164,10 @@ class Dataset_train(data.Dataset):
             from itertools import chain
             self.datalist = list(chain(*[[i] * 1 for i in self.datalist]))
 
-        self.simulated_uv = uv_generate(uvnum=30, output_size=256, rotation=120)
+        self.simulated_uv = uv_generate(uvnum=30, output_size=args.imageDims[0], rotation=120)
 
     def generate_uv(self, tele_num=10):
-        simulated_uv = uv_generate(uvnum=10, telescope_num=tele_num, output_size=256, rotation=120)
+        simulated_uv = uv_generate(uvnum=10, telescope_num=tele_num, output_size=args.imageDims[0], rotation=120)
         self.simulated_uv = simulated_uv
 
     def __len__(self):

@@ -105,7 +105,7 @@ def train(datatype):
             print('|| Ep {} || Secs {:.1f} || Loss {:.1f} || Val f1 score {:.3f} || Val Loss {:.3f} ||\n'.format(
                     epoch,
                     time.time() - start,
-                    loss_sum / batch_num,
+                    loss_sum,
                     val_f1_score,
                     val_loss,
                 )

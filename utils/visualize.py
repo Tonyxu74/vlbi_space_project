@@ -104,7 +104,7 @@ def visualize_comb(epoch_amp, epoch_phase):
 
     # amp model ==============================
     # load weights
-    pretrained_dict = torch.load('../data/models/{}/model_Unet_{}.pt'.format('amp', epoch_amp))['state_dict']
+    pretrained_dict = torch.load('../data/models/{}/comb_model_Unet_{}.pt'.format('amp', epoch_amp))['state_dict']
     model_dict = model_amp.state_dict()
     # filter out unnecessary keys
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
@@ -114,7 +114,7 @@ def visualize_comb(epoch_amp, epoch_phase):
 
     # phase model ==============================
     # load weights
-    pretrained_dict = torch.load('../data/models/{}/model_Unet_{}.pt'.format('phase', epoch_phase))['state_dict']
+    pretrained_dict = torch.load('../data/models/{}/comb_model_Unet_{}.pt'.format('phase', epoch_phase))['state_dict']
     model_dict = model_phase.state_dict()
     # filter out unnecessary keys
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
@@ -144,7 +144,7 @@ def visualize_comb(epoch_amp, epoch_phase):
                 pred_brightness = np.fft.ifft2(comb_gt)
                 pred_brightness = np.fft.ifftshift(pred_brightness)
                 pred_brightness = np.abs(pred_brightness)
-                pred_brightness[:, 115:141, 115:141] = 0
+                # pred_brightness[:, 115:141, 115:141] = 0
 
                 gt_vis_amp = gt_vis_amp.cpu().data.numpy() * VAL_AMP_STD + VAL_AMP_MEAN
                 gt_vis_phase = gt_vis_phase.cpu().data.numpy() * VAL_PHASE_STD + VAL_PHASE_MEAN
@@ -165,4 +165,4 @@ def visualize_comb(epoch_amp, epoch_phase):
 
 
 if __name__ == "__main__":
-    visualize_comb(45, 45)
+    visualize_comb(5, 5)
