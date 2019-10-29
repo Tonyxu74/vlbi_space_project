@@ -130,10 +130,10 @@ def train():
                 # this section concatenates the real and imaginary predictions properly for torch.fft
                 # perhaps change 3 dims to 2 dims
                 complex_prediction = torch.cat((real_prediction.unsqueeze(4), im_prediction.unsqueeze(4)), dim=4)
-                fft_prediction = torch.fft(complex_prediction, signal_ndim=3, normalized=False)
+                fft_prediction = torch.ifft(complex_prediction, signal_ndim=3, normalized=False)
 
                 complex_gt = torch.cat((real_gt.unsqueeze(4), im_gt.unsqueeze(4)), dim=4)
-                fft_gt = torch.fft(complex_gt, signal_ndim=3, normalized=False)
+                fft_gt = torch.ifft(complex_gt, signal_ndim=3, normalized=False)
 
                 loss = lossfn(fft_prediction, fft_gt)
 
@@ -189,10 +189,10 @@ def train():
 
                         # perhaps change 3 dims to 2 dims
                         complex_prediction = torch.cat((real_prediction.unsqueeze(4), im_prediction.unsqueeze(4)), dim=4)
-                        fft_prediction = torch.fft(complex_prediction, signal_ndim=3, normalized=False)
+                        fft_prediction = torch.ifft(complex_prediction, signal_ndim=3, normalized=False)
 
                         complex_gt = torch.cat((real_gt.unsqueeze(4), im_gt.unsqueeze(4)), dim=4)
-                        fft_gt = torch.fft(complex_gt, signal_ndim=3, normalized=False)
+                        fft_gt = torch.ifft(complex_gt, signal_ndim=3, normalized=False)
 
                         fft_preds.extend(fft_prediction.cpu().data.numpy())
                         fft_gts.extend(fft_gt.cpu().data.numpy())
