@@ -4,6 +4,7 @@ from PIL import Image
 from utils.dataset import GenerateIterator
 from myargs import args
 import segmentation_models_pytorch as smp
+from utils.automap_model import AUTOMAP_Model
 
 VAL_AMP_MEAN = 0.00221
 VAL_AMP_STD = 0.03018
@@ -164,5 +165,68 @@ def visualize_comb(epoch_amp, epoch_phase):
                 image_num += 1
 
 
+def visualize_automap(epoch):
+    iterator_val = GenerateIterator(args, '../data/arrays/val', eval=True, datatype='comb')
+
+    # model definition
+    model = AUTOMAP_Model()
+    model = model.cuda()
+
+    # load weights
+    pretrained_dict = torch.load('../data/models/automap_model/automap_model_{}.pt'.format(epoch))['state_dict']
+    model_dict = model.state_dict()
+    # filter out unnecessary keys
+    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+    # overwrite entries in the existing state dict
+    model_dict.update(pretrained_dict)
+    model.load_state_dict(model_dict)
+
+    with torch.no_grad():
+        model.eval()
+
+        image_num = 0
+
+        for amp_images, phase_images, amp_gt, phase_gt in iterator_val:
+            if torch.cuda.is_available():
+                amp_images = amp_images.cuda()
+                phase_images = phase_images.cuda()
+
+                # Re(Z) = |Z| * cos(phi)
+                real_img = torch.cos(phase_images * VAL_PHASE_STD) * amp_images
+                # Im(Z) = |Z| * sin(phi)
+                im_img = torch.sin(phase_images * VAL_PHASE_STD) * amp_images
+
+                real_gt = torch.cos(phase_gt * VAL_PHASE_STD) * amp_gt
+                im_gt = torch.sin(phase_gt * VAL_PHASE_STD) * amp_gt
+
+                # this section concatenates the real and imaginary predictions and flattens it
+                complex_img = torch.cat((real_img.unsqueeze(4), im_img.unsqueeze(4)), dim=4)
+                flat_img = complex_img.reshape(shape=(-1, args.imageDims[0] * args.imageDims[1] * 2))
+
+                # use irfft to get a real-valued magnitude label
+                complex_gt = torch.cat((real_gt.unsqueeze(4), im_gt.unsqueeze(4)), dim=4)
+                fft_gt = torch.ifft(complex_gt, signal_ndim=3, normalized=True)
+                # now make it only real by taking the Re of it (Im amplitude should be small but maybe consider
+                # actually finding magnitude with sqrt(a^2 + b^2) for z = a + bi
+                fft_gt = torch.sqrt(fft_gt[..., 0] * fft_gt[..., 0] + fft_gt[..., 1] * fft_gt[..., 1])
+
+                prediction = model(flat_img)
+
+                for pred_img, gt_img in zip(prediction, fft_gt):
+                    pred_img = np.abs(pred_img.cpu().data.numpy())
+                    gt_img = gt_img.cpu().data.numpy()
+
+                    max_brightness = np.max(pred_img)
+                    brightness_image = Image.fromarray((255 / max_brightness * pred_img).astype(np.uint8)[0])
+                    brightness_image.save('../data/automap_out/{}_prediction.png'.format(image_num))
+
+                    max_brightness_gt = np.max(gt_img)
+                    brightness_gt = Image.fromarray((255 / max_brightness_gt * gt_img).astype(np.uint8)[0])
+                    brightness_gt.save('../data/automap_out/{}_gt.png'.format(image_num))
+
+                    image_num += 1
+
+
 if __name__ == "__main__":
-    visualize_comb(47, 47)
+    # visualize_comb(47, 47)
+    visualize_automap(49)
