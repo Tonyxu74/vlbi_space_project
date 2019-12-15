@@ -165,4 +165,4 @@ def visualize_comb(epoch_amp, epoch_phase):
 
 
 if __name__ == "__main__":
-    visualize_comb(15, 15)
+    visualize_comb(47, 47)

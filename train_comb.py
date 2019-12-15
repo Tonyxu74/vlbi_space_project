@@ -239,8 +239,8 @@ def train():
             model_amp.train()
             model_phase.train()
 
-        # save models every 5 epochs to conserve computer memory
-        if epoch % 5 == 0:
+        # save models every 1 epoch
+        if epoch % 1 == 0:
             state = {
                 'epoch': epoch,
                 'state_dict': model_amp.state_dict(),
