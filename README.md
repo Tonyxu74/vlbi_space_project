@@ -18,7 +18,7 @@ A quick archive of my current progress (still a work-in-progress!):
   * Specifically found to work well on reconstructing incomplete k-space (another name for UV-plane) data, currently attempting to implement this.
 
 ### Output image highlights
-These images are a small sample of my current outputs. Though they are noisy, the general shape and positioning seem to be correct, but at a smaller size. 
+These images are a small sample of my current outputs. Though they are noisy, the general shape and positioning seem to be correct, but at a smaller size. Note, these images have been resized from 64x64 pixels. 
 
 __Output Prediction &emsp; &emsp; &emsp; Label__
 
