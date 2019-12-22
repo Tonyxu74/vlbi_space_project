@@ -17,4 +17,15 @@ A quick archive of my current progress (still a work-in-progress!):
 * AUTOMAP from [Zhu et al.'s "Image reconstruction by domain-transform manifold learning"](https://arxiv.org/ftp/arxiv/papers/1704/1704.08841.pdf)
   * Specifically found to work well on reconstructing incomplete k-space (another name for UV-plane) data, currently attempting to implement this.
 
+### Output image highlights
+These images are a small sample of my current outputs. Though they are noisy, the general shape and positioning seem to be correct, but at a smaller size. 
 
+__Output Prediction &emsp; &emsp; &emsp; Label__
+
+<img src="https://github.com/Tonyxu74/vlbi_space_project/blob/master/image_highlights/162_prediction.png" width="200" height="200"><img src="https://github.com/Tonyxu74/vlbi_space_project/blob/master/image_highlights/162_gt.png" width="200" height="200">
+
+<img src="https://github.com/Tonyxu74/vlbi_space_project/blob/master/image_highlights/167_prediction.png" width="200" height="200"><img src="https://github.com/Tonyxu74/vlbi_space_project/blob/master/image_highlights/167_gt.png" width="200" height="200">
+
+<img src="https://github.com/Tonyxu74/vlbi_space_project/blob/master/image_highlights/272_prediction.png" width="200" height="200"><img src="https://github.com/Tonyxu74/vlbi_space_project/blob/master/image_highlights/272_gt.png" width="200" height="200">
+
+<img src="https://github.com/Tonyxu74/vlbi_space_project/blob/master/image_highlights/295_prediction.png" width="200" height="200"><img src="https://github.com/Tonyxu74/vlbi_space_project/blob/master/image_highlights/295_gt.png" width="200" height="200">
