@@ -194,11 +194,14 @@ class Dataset_train(data.Dataset):
 
             rand_uv = self.simulated_uv[np.random.randint(0, len(self.simulated_uv))]
 
-            amp_image = amp_label * rand_uv
-            phase_image = phase_label * rand_uv
+            amp_image = amp_label
+            phase_image = phase_label
 
             amp_image, amp_label = normalizepatch(amp_image, amp_label, self.eval, self.std, 'amp')
             phase_image, phase_label = normalizepatch(phase_image, phase_label, self.eval, self.std, 'phase')
+
+            amp_image = amp_label * rand_uv
+            phase_image = phase_label * rand_uv
 
             return amp_image, phase_image, amp_label, phase_label
 

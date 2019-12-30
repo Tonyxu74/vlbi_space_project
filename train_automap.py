@@ -119,13 +119,15 @@ def train():
                         amp_images, amp_gt = amp_images.cuda(), amp_gt.cuda()
                         phase_images, phase_gt = phase_images.cuda(), phase_gt.cuda()
 
+                    # we unnormalize here but not in train because the nature of these images are different, one uses
+                    # the actual vis data, the other uses the UV generated stuff
                     # Re(Z) = |Z| * cos(phi)
-                    real_img = torch.cos(phase_images * VAL_PHASE_STD[0]) * amp_images
+                    real_img = torch.cos(phase_images * VAL_PHASE_STD) * (amp_images * VAL_AMP_STD + VAL_AMP_MEAN)
                     # Im(Z) = |Z| * sin(phi)
-                    im_img = torch.sin(phase_images * VAL_PHASE_STD[0]) * amp_images
+                    im_img = torch.sin(phase_images * VAL_PHASE_STD) * (amp_images * VAL_AMP_STD + VAL_AMP_MEAN)
 
-                    real_gt = torch.cos(phase_gt * VAL_PHASE_STD[0]) * amp_gt
-                    im_gt = torch.sin(phase_gt * VAL_PHASE_STD[0]) * amp_gt
+                    real_gt = torch.cos(phase_gt * VAL_PHASE_STD) * (amp_gt * VAL_AMP_STD + VAL_AMP_MEAN)
+                    im_gt = torch.sin(phase_gt * VAL_PHASE_STD) * (amp_gt * VAL_AMP_STD + VAL_AMP_MEAN)
 
                     # this section concatenates the real and imaginary predictions and flattens it
                     complex_img = torch.cat((real_img.unsqueeze(4), im_img.unsqueeze(4)), dim=4)

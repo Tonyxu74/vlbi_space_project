@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import math
+import torch
 from PIL import Image
 
 
@@ -73,7 +74,8 @@ def uv_generate(uvnum, telescope_num=10, datapoints=100, rotation=120, output_si
             uv_image[uv_coord[1]][uv_coord[0]] = 1
 
         # uv_image = Image.fromarray(uv_image)
-        uv_imgs.append(uv_image)
+        # uv_imgs.append(uv_image)
+        uv_imgs.append(torch.from_numpy(uv_image).float())
 
     return uv_imgs
 
