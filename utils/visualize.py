@@ -230,4 +230,4 @@ def visualize_automap(epoch):
 
 if __name__ == "__main__":
     # visualize_comb(47, 47)
-    visualize_automap(49)
+    visualize_automap(2)

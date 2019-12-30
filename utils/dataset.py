@@ -200,7 +200,7 @@ class Dataset_train(data.Dataset):
             amp_image, amp_label = normalizepatch(amp_image, amp_label, self.eval, self.std, 'amp')
             phase_image, phase_label = normalizepatch(phase_image, phase_label, self.eval, self.std, 'phase')
 
-            # trying to do this AFTER labels have been normalized 
+            # trying to do this AFTER labels have been normalized
             amp_image = amp_label * rand_uv
             phase_image = phase_label * rand_uv
 
