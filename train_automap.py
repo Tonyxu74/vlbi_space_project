@@ -4,7 +4,7 @@ from myargs import args
 from utils.dataset import GenerateIterator_train, GenerateIterator_val
 import tqdm
 import time
-from utils.automap_model import AUTOMAP_Model
+from utils.models import AUTOMAP_Model
 
 TRAIN_AMP_MEAN = (16.9907,)
 TRAIN_AMP_STD = (157.3094,)

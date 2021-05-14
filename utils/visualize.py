@@ -4,7 +4,7 @@ from PIL import Image
 from utils.dataset import GenerateIterator
 from myargs import args
 import segmentation_models_pytorch as smp
-from utils.automap_model import AUTOMAP_Model
+from utils.models import AUTOMAP_Model
 
 VAL_AMP_MEAN = 0.00221
 VAL_AMP_STD = 0.03018
@@ -230,4 +230,4 @@ def visualize_automap(epoch):
 
 if __name__ == "__main__":
     # visualize_comb(47, 47)
-    visualize_automap(2)
+    visualize_automap(49)

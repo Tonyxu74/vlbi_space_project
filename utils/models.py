@@ -1,3 +1,9 @@
+import numpy as np
+import torch
+from torch import nn
+from myargs import args
+
+
 '''
 Implementing https://arxiv.org/ftp/arxiv/papers/1704/1704.08841.pdf
 AUTOMAP for k-space reconstructions
@@ -7,12 +13,6 @@ model intakes the flattened complex uv plane data, so that it's (Images x 2*64^2
 the output is the reconstruction AFTER the fourier transform, meaning it is the reconstructed magnitude image, and can
 simply be MSE error'd with the iFFT of the frequency GT
 '''
-
-import numpy as np
-import torch
-from torch import nn
-from myargs import args
-
 
 class AUTOMAP_Model(nn.Module):
     def __init__(self):
@@ -52,4 +52,33 @@ class AUTOMAP_Model(nn.Module):
 
         x = self.Conv3(x)
 
+        return x
+
+
+class Discriminator(nn.Module):
+    """
+    Simple discriminator to determine if image is generated or original image
+    """
+    def __init__(self):
+        super(Discriminator, self).__init__()
+
+        def activation(x):
+            x
+
+        model = eval('smp.' + args.modelName)(
+            args.encoderName,
+            encoder_weights='imagenet',
+            classes=1,
+            activation=activation,
+        ).encoder
+        model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(512, 1)
+        self.model = model
+
+    def forward(self, x):
+        x = self.model(x)
+        x = self.avgpool(x).flatten(1)
+        x = self.fc(x)
         return x
