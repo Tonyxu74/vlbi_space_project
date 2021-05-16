@@ -10,11 +10,11 @@ parser.add_argument('--batchSize', type=int,
                     default=8, help='input batch size')
 parser.add_argument('--trainNum', type=int,
                     default=10000, help='input batch size')
-parser.add_argument('--numEpochs', type=int, default=50,
+parser.add_argument('--numEpochs', type=int, default=40,
                     help='number of epochs to train for')
 parser.add_argument('--continueEpoch', type=int, default=16,
                     help='Unnormalize weights before FFT?')
-parser.add_argument('--continueTrain', type=bool, default=True,
+parser.add_argument('--continueTrain', type=bool, default=False,
                     help='continue to train from saved dict')
 parser.add_argument('--imageDims', type=tuple,
                     default=(64, 64), help='dimensions of image')

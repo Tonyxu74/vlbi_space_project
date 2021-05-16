@@ -237,14 +237,14 @@ def GenerateIterator_train(args, impath, shuffle=True, datatype='amp'):
 
 def normalizepatch(p, gt, eval, std, datatype):
 
-    if not eval:
-        rot_num = random.choice([0, 1, 2, 3])
-        p = np.rot90(p, rot_num)
-        gt = np.rot90(gt, rot_num)
-
-        noise = np.random.normal(
-            0, std, args.imageDims)
-        p += noise
+    # if not eval:
+    #     # rot_num = random.choice([0, 1, 2, 3])
+    #     # p = np.rot90(p, rot_num)
+    #     # gt = np.rot90(gt, rot_num)
+    #
+    #     noise = np.random.normal(
+    #         0, std, args.imageDims)
+    #     p += noise
 
     p = np.ascontiguousarray(p)
     gt = np.ascontiguousarray(gt)

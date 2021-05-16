@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 from myargs import args
+from torchvision.models import resnet18
 
 
 '''
@@ -59,26 +60,38 @@ class Discriminator(nn.Module):
     """
     Simple discriminator to determine if image is generated or original image
     """
-    def __init__(self):
+    def __init__(self, input_channels=1):
         super(Discriminator, self).__init__()
 
         def activation(x):
             x
 
-        model = eval('smp.' + args.modelName)(
-            args.encoderName,
-            encoder_weights='imagenet',
-            classes=1,
-            activation=activation,
-        ).encoder
-        model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        model = resnet18(pretrained=True)
+
+        self.conv1 = torch.nn.Conv2d(input_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.bn1 = model.bn1
+        self.relu = model.relu
+        self.maxpool = model.maxpool
+
+        self.layer1 = model.layer1
+        self.layer2 = model.layer2
+        self.layer3 = model.layer3
+        self.layer4 = model.layer4
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512, 1)
-        self.model = model
 
     def forward(self, x):
-        x = self.model(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+
         x = self.avgpool(x).flatten(1)
         x = self.fc(x)
         return x

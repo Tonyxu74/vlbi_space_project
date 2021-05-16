@@ -3,10 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from myargs import args
 from utils.dataset import GenerateIterator, GenerateIterator_train, GenerateIterator_val
-import segmentation_models_pytorch as smp
 from utils.models import Discriminator
 import tqdm
 import time
+import segmentation_models_pytorch as smp
+from torch.fft import ifftn
 
 TRAIN_AMP_MEAN = (16.9907,)
 TRAIN_AMP_STD = (157.3094,)
@@ -45,7 +46,7 @@ def train():
         activation=activation,
     )
     model_phase.encoder.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-    model_disc = Discriminator()
+    model_disc = Discriminator(input_channels=2)
 
     # check if continue training from previous epochs
     if args.continueTrain:
@@ -81,7 +82,7 @@ def train():
 
     # pixel-by-pixel and adversarial losses
     lossfn = torch.nn.MSELoss()
-    lossfn_adv = torch.nn.BCELoss()
+    lossfn_adv = torch.nn.BCEWithLogitsLoss()
 
     iterator_train = GenerateIterator_train(args, './data/arrays/train', datatype='comb')
     iterator_val = GenerateIterator_val(args, './data/arrays/val', datatype='comb')
@@ -115,14 +116,20 @@ def train():
 
         '''======== TRAIN ========'''
         for amp_images, phase_images, amp_gt, phase_gt in progress_bar:
-            rec_image_labels = torch.ones(amp_images.shape[0],)
-            real_image_labels = torch.zeros(amp_images.shape[0],)
+            rec_image_labels = torch.ones(size=(amp_images.shape[0], 1))
+            real_image_labels = torch.zeros(size=(amp_images.shape[0], 1))
+
+            # try disc with soft labels, fake is between 0.7, 1.0, real between 0.0, 0.3
+            rec_image_labels_d = torch.rand(size=(amp_images.shape[0], 1)) * 0.3 + 0.7
+            real_image_labels_d = torch.rand(size=(amp_images.shape[0], 1)) * 0.3
 
             if torch.cuda.is_available():
                 amp_images, amp_gt = amp_images.cuda(), amp_gt.cuda()
                 phase_images, phase_gt = phase_images.cuda(), phase_gt.cuda()
                 rec_image_labels = rec_image_labels.cuda()
                 real_image_labels = real_image_labels.cuda()
+                rec_image_labels_d = rec_image_labels_d.cuda()
+                real_image_labels_d = real_image_labels_d.cuda()
 
             # ----- get amp/phase reconstructions -----
             amp_prediction = model_amp(amp_images)
@@ -131,23 +138,31 @@ def train():
             loss_amp = lossfn(amp_prediction, amp_gt).mean()
             loss_phase = lossfn(phase_prediction, phase_gt).mean()
 
-            # ----- get brightness images ------
-            # discriminator acts on brightness image combining phase and amp models with a complex fft
-            # Re(Z) = |Z| * cos(phi)
-            real_prediction = torch.cos(phase_prediction * VAL_PHASE_STD[0]) * amp_prediction
-            # Im(Z) = |Z| * sin(phi)
-            im_prediction = torch.sin(phase_prediction * VAL_PHASE_STD[0]) * amp_prediction
+            # # ----- get brightness images ------
+            # # discriminator acts on brightness image combining phase and amp models with a complex fft
+            # # Re(Z) = |Z| * cos(phi)
+            # real_prediction = torch.cos(phase_prediction * VAL_PHASE_STD[0]) * (amp_prediction * TRAIN_AMP_STD[0] + TRAIN_AMP_MEAN[0])
+            # # Im(Z) = |Z| * sin(phi)
+            # im_prediction = torch.sin(phase_prediction * VAL_PHASE_STD[0]) * (amp_prediction * TRAIN_AMP_STD[0] + TRAIN_AMP_MEAN[0])
+            #
+            # real_gt = torch.cos(phase_gt * VAL_PHASE_STD[0]) * (amp_gt * TRAIN_AMP_STD[0] + TRAIN_AMP_MEAN[0])
+            # im_gt = torch.sin(phase_gt * VAL_PHASE_STD[0]) * (amp_gt * TRAIN_AMP_STD[0] + TRAIN_AMP_MEAN[0])
+            #
+            # # this section concatenates the real and imaginary predictions properly for torch.fft
+            # # perhaps change 3 dims to 2 dims
+            # complex_prediction = real_prediction + 1j * im_prediction
+            # fft_prediction = ifftn(complex_prediction, dim=(-2, -1)).abs()
+            #
+            # complex_gt = real_gt + 1j * im_gt
+            # fft_gt = ifftn(complex_gt, dim=(-2, -1)).abs()
+            #
+            # # now divide by max and use mean = 0.5 and std = 0.5 to normalize from 0 to 1 to -1 to 1
+            # fft_prediction = (fft_prediction / fft_prediction.max() - 0.5) / 0.5
+            # fft_gt = (fft_gt / fft_gt.max() - 0.5) / 0.5
 
-            real_gt = torch.cos(phase_gt * VAL_PHASE_STD[0]) * amp_gt
-            im_gt = torch.sin(phase_gt * VAL_PHASE_STD[0]) * amp_gt
-
-            # this section concatenates the real and imaginary predictions properly for torch.fft
-            # perhaps change 3 dims to 2 dims
-            complex_prediction = torch.cat((real_prediction.unsqueeze(4), im_prediction.unsqueeze(4)), dim=4)
-            fft_prediction = torch.ifft(complex_prediction, signal_ndim=3, normalized=True)
-
-            complex_gt = torch.cat((real_gt.unsqueeze(4), im_gt.unsqueeze(4)), dim=4)
-            fft_gt = torch.ifft(complex_gt, signal_ndim=3, normalized=True)
+            # (avoid complex) try with being entirely in freq domain, not fft'd just use this name so code isn't changed
+            fft_prediction = torch.cat((amp_prediction, phase_prediction), dim=1)
+            fft_gt = torch.cat((amp_gt, phase_gt), dim=1)
 
             # ----- train reconstruction model -----
             # add reconstruction loss and mse losses
@@ -161,8 +176,8 @@ def train():
 
             # ----- train discriminator model -----
             # divide discriminator loss by 2 so that loss weights are the same
-            disc_loss = (lossfn_adv(model_disc(fft_prediction.detach()), rec_image_labels) +
-                         lossfn_adv(model_disc(fft_gt), real_image_labels)) / 2
+            disc_loss = (lossfn_adv(model_disc(fft_prediction.detach()), rec_image_labels_d) +
+                         lossfn_adv(model_disc(fft_gt), real_image_labels_d)) / 2
 
             optimizer_disc.zero_grad()
             disc_loss.backward()
@@ -215,7 +230,7 @@ def train():
                 val_f1_score_phase = (np.sum(np.abs(phase_preds.flatten() - phase_gts.flatten())) / len(phase_gts.flatten()))
 
                 print(
-                    '|| Ep {} || Secs {:.1f} || Rec Loss {:.3f} || Disc Loss {:.3f} || Val f1 score amp {:.3f} || Val f1 score phase {:.3f} Val Loss {:.3f} ||\n'.format(
+                    '|| Ep {} || Secs {:.1f} || Rec Loss {:.3f} || Disc Loss {:.3f} || Val l1 score amp {:.3f} || Val l1 score phase {:.3f} || Val Loss {:.3f} ||\n'.format(
                         epoch,
                         time.time() - start,
                         rec_loss_sum,
