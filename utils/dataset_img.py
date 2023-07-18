@@ -1,10 +1,10 @@
 import glob
 from torch.utils import data
 import torchvision.transforms as transforms
-from itertools import chain
 from PIL import Image
 from myargs import args
 import torch
+import ehtim as eh
 
 from utils.UV_plane_generator import uv_generate
 
@@ -25,11 +25,9 @@ def ifft_centered(image, norm='ortho'):
 
 class TrainImageDataset(data.Dataset):
     'Characterizes a dataset for PyTorch'
-    def __init__(self, impath, eval, datatype):
+    def __init__(self, impath):
         'Initialization'
 
-        self.eval = eval
-        self.datatype = datatype
         self.std = 0
 
         # add images to dataset
@@ -38,7 +36,6 @@ class TrainImageDataset(data.Dataset):
         for impath in imgpaths:
             datalist.append({'image': impath})
         self.datalist = datalist
-        self.datalist = list(chain(*[[i] * 1 for i in self.datalist]))
 
         # define transforms
         self.transforms = transforms.Compose([
@@ -58,7 +55,7 @@ class TrainImageDataset(data.Dataset):
         'Generates one sample of data'
 
         # load image
-        orig_image = Image.open(self.datalist[index]).convert('L')
+        orig_image = Image.open(self.datalist[index]['image']).convert('L')
         orig_image = self.transforms(orig_image)
 
         # generate UV plane and dirty beam
@@ -77,3 +74,47 @@ class TrainImageDataset(data.Dataset):
 
         # return image and label
         return dirty_input, orig_image
+
+
+class ValidImageDataset(data.Dataset):
+    def __init__(self, impath):
+        'Initialization'
+        # add images to dataset
+        datalist = []
+        imgpaths = glob.glob('{}/*/*.oifits'.format(impath))
+        for impath in imgpaths:
+            gtpath = impath.replace('UVData', 'targetImgs').replace('.oifits', '.fits')
+            datalist.append({'image': impath, 'label': gtpath})
+        self.datalist = datalist
+
+    def __len__(self):
+        'Denotes the total number of samples'
+        return len(self.datalist)
+
+    def __getitem__(self, index):
+        'Generates one sample of data'
+        # load observation and target
+        obs = eh.obsdata.load_oifits(self.datalist[index]['image'])
+        target = eh.image.load_fits(self.datalist[index]['label'])
+
+        # get fov of target (match for observation)
+        fov = target.fovx()
+        target = target.regrid_image(fov, args.imageDims[0])
+        target = target.imarr()
+
+        # get beam and dirty image
+        dirty_img = obs.dirtyimage(args.imageDims[0], fov).imarr()
+        dirty_beam = obs.dirtybeam(args.imageDims[0], fov).imarr()
+
+        # convert to tensor
+        dirty_img, dirty_beam, target = torch.tensor(dirty_img), torch.tensor(dirty_beam), torch.tensor(target)
+
+        # normalize image, beam and target between 0 and 1, and concatenate
+        dirty_img = (dirty_img - torch.min(dirty_img)) / (torch.max(dirty_img) - torch.min(dirty_img))
+        dirty_beam = (dirty_beam - torch.min(dirty_beam)) / (torch.max(dirty_beam) - torch.min(dirty_beam))
+        target = (target - torch.min(target)) / (torch.max(target) - torch.min(target))
+
+        dirty_input = torch.cat((dirty_img, dirty_beam), dim=0)
+
+        # return image and label
+        return dirty_input, target
