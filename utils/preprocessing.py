@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import math
 from scipy.ndimage.interpolation import zoom
+import ehtim as eh
 
 '''
     make some open all files with oifits ending and find their corresponding image, resize to 64x64, 
@@ -88,11 +89,40 @@ def process_datafolder(path):
         np.save('../data/arrays/{}/{}_amp_img.npy'.format(telescope_setting, image_name), amp_image)
 
 
+def process_datafolder_imgarr(path):
+
+    oifits_data = find_file(path, '.oifits')
+    oifits_data = [oifits_datum for oifits_datum in oifits_data if 'normalized' not in oifits_datum]
+    gt_images = find_file(path, '.fits')
+    telescope_setting = path.replace('../raw_data/', '').replace('_data', '')
+
+    if not os.path.exists('../data/img_arrays/{}/'.format(telescope_setting)):
+        os.mkdir('../data/img_arrays/{}/'.format(telescope_setting))
+
+    for data, gt_path in tqdm(zip(oifits_data, gt_images)):
+        image_name = gt_path.replace('{}\\targetImgs\\'.format(path), '').replace('.fits', '')
+        obs = eh.obsdata.load_oifits(data)
+        target = eh.image.load_fits(gt_path)
+
+        # get fov of target (match for observation)
+        fov = target.fovx()
+        target = target.regrid_image(fov, args.imageDims[0])
+        target = target.imarr()
+
+        # get beam and dirty image
+        dirty_img = obs.dirtyimage(args.imageDims[0], fov).imarr()
+        dirty_beam = obs.dirtybeam(args.imageDims[0], fov).imarr()
+
+        np.save(f'../data/img_arrays/{telescope_setting}/{image_name}_dirty_img.npy', dirty_img)
+        np.save(f'../data/img_arrays/{telescope_setting}/{image_name}_dirty_beam.npy', dirty_beam)
+        np.save(f'../data/img_arrays/{telescope_setting}/{image_name}_target.npy', target)
+
+
 if __name__ == "__main__":
-    # process_datafolder('../raw_data/SgrA-star_data')
-    process_datafolder('../raw_data/3C273_data')
-    process_datafolder('../raw_data/3C279_data')
-    process_datafolder('../raw_data/M87_data')
-    process_datafolder('../raw_data/size_data')
-    process_datafolder('../raw_data/loc_data')
-    process_datafolder('../raw_data/challenge_data')
+    process_datafolder_imgarr('../raw_data/SgrA-star_data')
+    process_datafolder_imgarr('../raw_data/3C273_data')
+    process_datafolder_imgarr('../raw_data/3C279_data')
+    process_datafolder_imgarr('../raw_data/M87_data')
+    process_datafolder_imgarr('../raw_data/size_data')
+    process_datafolder_imgarr('../raw_data/loc_data')
+    process_datafolder_imgarr('../raw_data/challenge_data')

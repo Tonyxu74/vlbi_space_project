@@ -2,9 +2,11 @@ import numpy as np
 import torch
 from PIL import Image
 from utils.dataset import GenerateIterator, GenerateIterator_train
+from utils.dataset_img import GenerateValidImageIterator, GenerateTrainImageIterator
 from myargs import args
 import segmentation_models_pytorch as smp
 from utils.models import AUTOMAP_Model
+from skimage.metrics import structural_similarity as ssim
 
 VAL_AMP_MEAN = 0.00221
 VAL_AMP_STD = 0.03018
@@ -242,6 +244,85 @@ def visualize_comb(epoch_amp, epoch_phase):
                 break
 
 
+def vis_img(epoch):
+
+    # define model and initialize weights
+    model = eval('smp.' + args.modelName)(
+        args.encoderName,
+        encoder_weights='imagenet',
+        classes=1,
+        in_channels=2,
+        activation=None
+    )
+
+    pretrained_dict = torch.load('../data/models/img_domain/img_model_Unet_{}.pt'.format(epoch))['state_dict']
+    model_dict = model.state_dict()
+    # 1. filter out unnecessary keys
+    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+    # 2. overwrite entries in the existing state dict
+    model_dict.update(pretrained_dict)
+    model.load_state_dict(model_dict)
+
+    iterator_val = GenerateValidImageIterator(args, '../data/img_arrays')
+    # iterator_val = GenerateTrainImageIterator(args, '../raw_data/256_ObjectCategories')
+    iterator_val.dataset.maxrad_range = [0.1, 0.3]
+    lossfn = torch.nn.MSELoss()
+
+    # cuda?
+    if torch.cuda.is_available():
+        model = model.cuda()
+        lossfn = lossfn.cuda()
+
+    with torch.no_grad():
+        model.eval()
+
+        image_num = 0
+        batch_num = 0
+        total_loss = 0
+        ssim_score = 0
+
+        for dirty_input, target_img in iterator_val:
+            if torch.cuda.is_available():
+                dirty_input, target_img = dirty_input.cuda(), target_img.cuda()
+
+            pred_recon = model(dirty_input)
+            loss = lossfn(pred_recon, target_img)
+            total_loss += loss.cpu().item()
+
+            for dinput, rec, gt in zip(dirty_input, pred_recon, target_img):
+                dimg, dbeam = dinput.cpu().data.numpy()
+                rec = rec.cpu().data.numpy()[0]
+                gt = gt.cpu().numpy()[0]
+
+                rec = np.clip(rec, 0., 1.)
+
+                ssim_score += ssim(rec, gt, data_range=1.0)
+
+                dimg = Image.fromarray((255 * dimg).astype(np.uint8))
+                dimg.save(f'../data/out/{image_num}_dirty_image.png')
+
+                dbeam = Image.fromarray((255 * dbeam).astype(np.uint8))
+                dbeam.save(f'../data/out/{image_num}_dirty_beam.png')
+
+                rec = Image.fromarray((255 * rec).astype(np.uint8))
+                rec.save(f'../data/out/{image_num}_recon.png')
+
+                gt = Image.fromarray((255 * gt).astype(np.uint8))
+                gt.save(f'../data/out/{image_num}_target.png')
+
+                image_num += 1
+
+            batch_num += 1
+            # if image_num > 500:
+            #     break
+
+        print(f'avg loss: {total_loss / batch_num}')
+        print(f'avg ssim: {ssim_score / image_num}')
+
+
 if __name__ == "__main__":
-    visualize_comb(13, 13)
+    # visualize_comb(13, 13)
     # visualize_automap(49)
+    vis_img(51)
+
+    # 43 is good

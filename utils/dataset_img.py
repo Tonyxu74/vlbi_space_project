@@ -4,7 +4,8 @@ import torchvision.transforms as transforms
 from PIL import Image
 from myargs import args
 import torch
-import ehtim as eh
+import numpy as np
+from torchvision.transforms import functional as F
 
 from utils.UV_plane_generator import uv_generate
 
@@ -28,11 +29,13 @@ class TrainImageDataset(data.Dataset):
     def __init__(self, impath):
         'Initialization'
 
-        self.std = 0
+        # max radius range allows generally low freq or higher freq coverage
+        # sched upper range to be higher during training --> start off with only low freq, then add higher freq
+        self.maxrad_range = list(args.maxradWarmup)
 
         # add images to dataset
         datalist = []
-        imgpaths = glob.glob('{}/*.jpg'.format(impath))
+        imgpaths = glob.glob('{}/*/*.jpg'.format(impath))
         for impath in imgpaths:
             datalist.append({'image': impath})
         self.datalist = datalist
@@ -45,7 +48,7 @@ class TrainImageDataset(data.Dataset):
             transforms.ToTensor(),
         ])
 
-        self.gauss_blur = transforms.GaussianBlur(kernel_size=15, sigma=(5.0, 7.0))
+        # self.gauss_blur = transforms.GaussianBlur(kernel_size=15)
 
     def __len__(self):
         'Denotes the total number of samples'
@@ -58,22 +61,34 @@ class TrainImageDataset(data.Dataset):
         orig_image = Image.open(self.datalist[index]['image']).convert('L')
         orig_image = self.transforms(orig_image)
 
+        # get random radius, random gaussian blur sigma between 2 and 7
+        max_rad = np.random.random() * (self.maxrad_range[1] - self.maxrad_range[0]) + self.maxrad_range[0]
+        blur_sigma = np.random.random() * 5.0 + 2.0
+
         # generate UV plane and dirty beam
-        uv_coverage = uv_generate(args.imageDims[0])
-        dirty_beam = self.gauss_blur(torch.abs(ifft_centered(uv_coverage)))
+        uv_coverage = torch.tensor(uv_generate(args.imageDims[0], radius=(0.0, max_rad))).unsqueeze(0)
+        dirty_beam = F.gaussian_blur(
+            torch.abs(ifft_centered(uv_coverage)), [15, 15], [blur_sigma, blur_sigma])
 
         # get dirty image
         fft_orig = fft_centered(orig_image)
-        dirty_img = self.gauss_blur(torch.abs(ifft_centered(fft_orig * uv_coverage)))
+        dirty_img = F.gaussian_blur(
+            torch.abs(ifft_centered(fft_orig * uv_coverage)), [15, 15], [blur_sigma, blur_sigma])
 
         # normalize image and beam between 0 and 1, and concatenate
-        dirty_img = (dirty_img - torch.min(dirty_img)) / (torch.max(dirty_img) - torch.min(dirty_img))
-        dirty_beam = (dirty_beam - torch.min(dirty_beam)) / (torch.max(dirty_beam) - torch.min(dirty_beam))
+        if dirty_img.max() == dirty_img.min():
+            dirty_img = torch.ones_like(dirty_img) * 0.5
+        else:
+            dirty_img = (dirty_img - torch.min(dirty_img)) / (torch.max(dirty_img) - torch.min(dirty_img))
+        if dirty_beam.max() == dirty_beam.min():
+            dirty_beam = torch.ones_like(dirty_beam) * 0.5
+        else:
+            dirty_beam = (dirty_beam - torch.min(dirty_beam)) / (torch.max(dirty_beam) - torch.min(dirty_beam))
 
         dirty_input = torch.cat((dirty_img, dirty_beam), dim=0)
 
         # return image and label
-        return dirty_input, orig_image
+        return dirty_input.float(), orig_image.float()
 
 
 class ValidImageDataset(data.Dataset):
@@ -81,10 +96,11 @@ class ValidImageDataset(data.Dataset):
         'Initialization'
         # add images to dataset
         datalist = []
-        imgpaths = glob.glob('{}/*/*.oifits'.format(impath))
+        imgpaths = glob.glob('{}/*/*_dirty_img.npy'.format(impath))
         for impath in imgpaths:
-            gtpath = impath.replace('UVData', 'targetImgs').replace('.oifits', '.fits')
-            datalist.append({'image': impath, 'label': gtpath})
+            gt_path = impath.replace('_dirty_img', '_target')
+            beam_path = impath.replace('_dirty_img', '_dirty_beam')
+            datalist.append({'dirty_image': impath, 'label': gt_path, 'dirty_beam': beam_path})
         self.datalist = datalist
 
     def __len__(self):
@@ -93,28 +109,44 @@ class ValidImageDataset(data.Dataset):
 
     def __getitem__(self, index):
         'Generates one sample of data'
-        # load observation and target
-        obs = eh.obsdata.load_oifits(self.datalist[index]['image'])
-        target = eh.image.load_fits(self.datalist[index]['label'])
+        # load dirty image, dirty beam and target
+        dirty_img = torch.tensor(np.load(self.datalist[index]['dirty_image']))
+        dirty_beam = torch.tensor(np.load(self.datalist[index]['dirty_beam']))
+        target = torch.tensor(np.load(self.datalist[index]['label']))
 
-        # get fov of target (match for observation)
-        fov = target.fovx()
-        target = target.regrid_image(fov, args.imageDims[0])
-        target = target.imarr()
-
-        # get beam and dirty image
-        dirty_img = obs.dirtyimage(args.imageDims[0], fov).imarr()
-        dirty_beam = obs.dirtybeam(args.imageDims[0], fov).imarr()
-
-        # convert to tensor
-        dirty_img, dirty_beam, target = torch.tensor(dirty_img), torch.tensor(dirty_beam), torch.tensor(target)
-
-        # normalize image, beam and target between 0 and 1, and concatenate
+        # normalize image, beam and target between 0 and 1, and stack
         dirty_img = (dirty_img - torch.min(dirty_img)) / (torch.max(dirty_img) - torch.min(dirty_img))
         dirty_beam = (dirty_beam - torch.min(dirty_beam)) / (torch.max(dirty_beam) - torch.min(dirty_beam))
         target = (target - torch.min(target)) / (torch.max(target) - torch.min(target))
 
-        dirty_input = torch.cat((dirty_img, dirty_beam), dim=0)
+        # target swap left right for some reason
+        target = torch.flip(target, dims=[-1])
+
+        dirty_input = torch.stack((dirty_img, dirty_beam), dim=0)
 
         # return image and label
-        return dirty_input, target
+        return dirty_input.float(), target.unsqueeze(0).float()
+
+
+def GenerateTrainImageIterator(args, impath, shuffle=True):
+    params = {
+        'batch_size': args.batchSize,
+        'shuffle': shuffle,
+        'num_workers': args.workers,
+        'pin_memory': True,
+        'drop_last': False,
+    }
+
+    return data.DataLoader(TrainImageDataset(impath), **params)
+
+
+def GenerateValidImageIterator(args, impath):
+    params = {
+        'batch_size': args.batchSize,
+        'shuffle': False,
+        'num_workers': args.workers,
+        'pin_memory': True,
+        'drop_last': False,
+    }
+
+    return data.DataLoader(ValidImageDataset(impath), **params)
